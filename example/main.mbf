@@ -1,0 +1,16 @@
+Normal BrainFuck
+[]<>+-,.
+
+
+Include MetaBrainFuck and BrainFuck files
+test.mbf
+test.bf
+
+
+Repeat code
+repeat(test.mbf; 3)
+
+repeat(test.mbf
++++
+test.mbf
+; 3)
