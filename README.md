@@ -5,6 +5,10 @@ This is BrainFuck with some convenience features:
 
 As you can see, the list is very small. Feel free to make feature requests!
 
+This "compiler" "compiles" MetaBrainFuck to regular BrainFuck.
+
+MBF files have the .mbf extension.
+
 I didn't want to add an interpreter to let the user choose one.
 
 ## Usage
