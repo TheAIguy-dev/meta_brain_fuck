@@ -8,3 +8,10 @@ edition = "2021"
 [dependencies]
 regex = "1.10.3"
 walkdir = "2.4.0"
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+panic = "abort"
+opt-level = "z"
