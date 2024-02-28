@@ -50,7 +50,7 @@ fn main() {
     }
 
     let mut program: String =
-        fs::read_to_string(&input_file).expect(&format!("{} not found!", input_file));
+        fs::read_to_string(&input_file).expect(&format!("{} not found", input_file));
 
     let mut files: HashMap<String, String> = HashMap::new();
     for file_name in get_project_files().unwrap_or_default() {
@@ -61,16 +61,34 @@ fn main() {
         }
     }
 
+    // Apply all mappings
+    let re: Regex = Regex::new(r"map\(([\S\s]*?); ([\S\s]*?)\)").unwrap();
+    for (m, [c, r]) in re.captures_iter(&program.clone()).map(|c| c.extract()) {
+        program = program.replace(m, "").replace(c, r);
+    }
+
     program = expand(program.clone(), &files);
 
     // Apply the repeat macro
     let re: Regex = Regex::new(r"repeat\(([\S\s]*?); ([0-9]+)\)").unwrap();
-    for (m, [p, n]) in re.captures_iter(&program.clone()).map(|c| c.extract()) {
+    for (m, [c, n]) in re.captures_iter(&program.clone()).map(|c| c.extract()) {
         program = program.replacen(
             m,
-            &expand(p.to_string(), &files).repeat(usize::from_str_radix(n, 10).unwrap_or_default()),
+            &expand(c.to_string(), &files).repeat(usize::from_str_radix(n, 10).unwrap_or_default()),
             1,
         );
+    }
+
+    // Expand numbers
+    let re: Regex = Regex::new(r"(?:\+|-)?([0-9]+)").unwrap();
+    for (m, [_]) in re.captures_iter(&program.clone()).map(|c| c.extract()) {
+        let r = if m.starts_with("+") || m.starts_with("-") {
+            m.chars().nth(0).unwrap().to_string().repeat(usize::from_str_radix(&m[1..m.len()], 10).unwrap_or_default())
+        }
+        else {
+            "+".repeat(usize::from_str_radix(&m, 10).unwrap_or_default())
+        };
+        program = program.replacen(m, &r, 1);
     }
 
     fs::write(&output_file, program).expect(&format!("Could not write {}", output_file));
