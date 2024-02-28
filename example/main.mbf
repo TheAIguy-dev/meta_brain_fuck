@@ -7,6 +7,11 @@ test.mbf
 test.bf
 
 
+Write numbers
++42
+-6
+
+
 Repeat code
 repeat(test.mbf; 3)
 
@@ -14,3 +19,10 @@ repeat(test.mbf
 +++
 test.mbf
 ; 3)
+
+
+Map code to other code
+map(CODE; +++
+---
++++)
+CODE

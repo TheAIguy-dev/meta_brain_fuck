@@ -1,25 +1,31 @@
-use std::{collections::HashMap, env, fs, io::Result};
+use std::{
+    collections::{HashMap, VecDeque},
+    env, fs,
+};
 
 use regex::Regex;
 use walkdir::WalkDir;
 
 /// Recursively get all BF and MBF files in the project
-fn get_project_files() -> Result<Vec<String>> {
-    let mut files: Vec<String> = vec![];
+fn get_project_files() -> HashMap<String, String> {
+    let mut files: HashMap<String, String> = HashMap::new();
 
     for entry in WalkDir::new(".")
         .follow_links(true)
         .into_iter()
         .filter_map(|e| e.ok())
     {
-        let file = entry.path().to_string_lossy().to_string();
+        let file_name: String = entry.file_name().to_string_lossy().to_string();
+        let file_path: String = entry.path().to_string_lossy().to_string();
 
-        if file.ends_with(".mbf") || file.ends_with(".bf") {
-            files.push(file);
+        if file_name.ends_with(".mbf") || file_name.ends_with(".bf") {
+            let contents: String =
+                fs::read_to_string(&file_path).expect(&format!("Could not read {}", file_path));
+            files.insert(file_name, contents);
         }
     }
 
-    Ok(files)
+    files
 }
 
 /// Recursively expand files to their content
@@ -38,28 +44,32 @@ fn expand(mut program: String, files: &HashMap<String, String>) -> String {
 }
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
+    let mut args: VecDeque<String> = env::args().collect();
+    args.pop_front();
 
-    let input_file: String = args.get(1).cloned().unwrap_or("main.mbf".to_string());
+    let (strip_comments, charset) = match args.get(0).cloned().unwrap_or_default().as_str() {
+        "-c" | "--charset" => {
+            args.pop_front();
+            (
+                true,
+                args.pop_front()
+                    .expect("The option --charset requires a charset as the next argument"),
+            )
+        }
+        _ => (false, "[]<>+-,.".to_string()),
+    };
+
+    let input_file: String = args.pop_front().unwrap_or("main.mbf".to_string());
     if !input_file.ends_with(".mbf") {
         panic!("{} is not a MetaBrainFuck file", input_file);
     }
-    let output_file: String = args.get(2).cloned().unwrap_or("out.bf".to_string());
+    let output_file: String = args.pop_front().unwrap_or("out.bf".to_string());
     if !output_file.ends_with(".bf") {
         panic!("{} is not a BrainFuck file", output_file);
     }
 
-    let mut program: String =
-        fs::read_to_string(&input_file).expect(&format!("{} not found", input_file));
-
-    let mut files: HashMap<String, String> = HashMap::new();
-    for file_name in get_project_files().unwrap_or_default() {
-        if file_name != input_file && file_name != output_file {
-            let contents: String =
-                fs::read_to_string(&file_name).expect(&format!("Could not read {}", file_name));
-            files.insert(file_name, contents);
-        }
-    }
+    let files: HashMap<String, String> = get_project_files();
+    let mut program: String = files.get(&input_file).unwrap().clone();
 
     // Apply all mappings
     let re: Regex = Regex::new(r"map\(([\S\s]*?); ([\S\s]*?)\)").unwrap();
@@ -67,14 +77,12 @@ fn main() {
         program = program.replace(m, "").replace(c, r);
     }
 
-    program = expand(program.clone(), &files);
-
     // Apply the repeat macro
     let re: Regex = Regex::new(r"repeat\(([\S\s]*?); ([0-9]+)\)").unwrap();
     for (m, [c, n]) in re.captures_iter(&program.clone()).map(|c| c.extract()) {
         program = program.replacen(
             m,
-            &expand(c.to_string(), &files).repeat(usize::from_str_radix(n, 10).unwrap_or_default()),
+            &c.repeat(usize::from_str_radix(n, 10).unwrap_or_default()),
             1,
         );
     }
@@ -83,12 +91,22 @@ fn main() {
     let re: Regex = Regex::new(r"(?:\+|-)([0-9]+)").unwrap();
     for (m, [_]) in re.captures_iter(&program.clone()).map(|c| c.extract()) {
         let r = if m.starts_with("+") || m.starts_with("-") {
-            m.chars().nth(0).unwrap().to_string().repeat(usize::from_str_radix(&m[1..m.len()], 10).unwrap_or_default())
-        }
-        else {
+            m.chars()
+                .nth(0)
+                .unwrap()
+                .to_string()
+                .repeat(usize::from_str_radix(&m[1..m.len()], 10).unwrap_or_default())
+        } else {
             "+".repeat(usize::from_str_radix(&m, 10).unwrap_or_default())
         };
         program = program.replacen(m, &r, 1);
+    }
+
+    program = expand(program.clone(), &files);
+
+    // Strip comments
+    if strip_comments {
+        program = program.chars().filter(|c| charset.contains(*c)).collect();
     }
 
     fs::write(&output_file, program).expect(&format!("Could not write {}", output_file));
