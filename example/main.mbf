@@ -12,6 +12,10 @@ Write numbers
 -6
 
 
+Write strings
+string("Hello, World!")
+
+
 Repeat code
 repeat(test.mbf; 3)
 

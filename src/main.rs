@@ -87,6 +87,19 @@ fn main() {
         );
     }
 
+    // Apply the string macro
+    let re: Regex = Regex::new(r#"string\("(.*?[^\\])"\)"#).unwrap();
+    for (m, [s]) in re.captures_iter(&program.clone()).map(|c| c.extract()) {
+        let s: String = s.replace("\\\"", "\"").replace("\\)", ")");
+
+        let mut r: String = "".to_string();
+        for c in s.chars() {
+            r += &format!("+{} >\n", c as u8 & 0x7F);
+        }
+        r += &"<".repeat(s.chars().count());
+        program = program.replacen(m, &r, 1);
+    }
+
     // Expand numbers
     let re: Regex = Regex::new(r"(?:\+|-)([0-9]+)").unwrap();
     for (m, [_]) in re.captures_iter(&program.clone()).map(|c| c.extract()) {
