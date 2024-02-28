@@ -71,12 +71,6 @@ fn main() {
     let files: HashMap<String, String> = get_project_files();
     let mut program: String = files.get(&input_file).unwrap().clone();
 
-    // Apply all mappings
-    let re: Regex = Regex::new(r"map\(([\S\s]*?); ([\S\s]*?)\)").unwrap();
-    for (m, [c, r]) in re.captures_iter(&program.clone()).map(|c| c.extract()) {
-        program = program.replace(m, "").replace(c, r);
-    }
-
     // Apply the repeat macro
     let re: Regex = Regex::new(r"repeat\(([\S\s]*?); ([0-9]+)\)").unwrap();
     for (m, [c, n]) in re.captures_iter(&program.clone()).map(|c| c.extract()) {
@@ -116,6 +110,12 @@ fn main() {
     }
 
     program = expand(program.clone(), &files);
+
+    // Apply all mappings
+    let re: Regex = Regex::new(r"map\(([\S\s]*?); ([\S\s]*?)\)").unwrap();
+    for (m, [c, r]) in re.captures_iter(&program.clone()).map(|c| c.extract()) {
+        program = program.replace(m, "").replace(c, r);
+    }
 
     // Strip comments
     if strip_comments {
