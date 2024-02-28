@@ -80,7 +80,7 @@ fn main() {
     }
 
     // Expand numbers
-    let re: Regex = Regex::new(r"(?:\+|-)?([0-9]+)").unwrap();
+    let re: Regex = Regex::new(r"(?:\+|-)([0-9]+)").unwrap();
     for (m, [_]) in re.captures_iter(&program.clone()).map(|c| c.extract()) {
         let r = if m.starts_with("+") || m.starts_with("-") {
             m.chars().nth(0).unwrap().to_string().repeat(usize::from_str_radix(&m[1..m.len()], 10).unwrap_or_default())
