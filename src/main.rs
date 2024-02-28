@@ -12,7 +12,7 @@ fn get_project_files() -> Result<Vec<String>> {
         .into_iter()
         .filter_map(|e| e.ok())
     {
-        let file = entry.file_name().to_string_lossy().to_string();
+        let file = entry.path().to_string_lossy().to_string();
 
         if file.ends_with(".mbf") || file.ends_with(".bf") {
             files.push(file);
